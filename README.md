@@ -21,10 +21,12 @@ Open `character.md` on GitHub, click the pencil icon, edit, and commit. The page
 
 ## The model
 
-**`onnx-community/Qwen2.5-0.5B-Instruct`** (0.5 billion parameters, 4-bit), about **500 MB**, downloaded once.
+**`onnx-community/Qwen2.5-0.5B-Instruct`** (0.5 billion parameters), downloaded once:
 
-- With WebGPU it loads the `q4f16` weights, or `q4` if the GPU lacks fp16 support.
-- With WASM it loads the `q8` weights, which are also roughly 500 MB but slower to run.
+- **WebGPU** (Chrome, Edge): `q4` weights, **786 MB**. The smaller `q4f16` build (483 MB) is deliberately not used. On WebGPU it produced garbled or echoed replies ("Mouth of your swans."), likely because its fp16 math overflows on some GPUs.
+- **WASM** (other browsers): `q8` weights, **512 MB**, slower to run.
+
+Sampling follows Qwen's own recommended settings: temperature 0.7, top_k 20, top_p 0.8, repetition penalty 1.1.
 
 The progress bar shows the exact byte count as files arrive. The browser keeps the files in its Cache Storage, so return visits load straight from disk and work offline. The Transformers.js library itself is pinned to `@huggingface/transformers@4.3.2` from jsDelivr.
 

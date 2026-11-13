@@ -203,7 +203,7 @@
     <h2 id="setupTitle" class="sr-only" style="position:absolute;left:-9999px">Download the model</h2>
     <p class="note">
       Clem is voiced by a small AI language model that runs <strong>entirely on your device</strong>.
-      You'll download it <strong>once</strong> (about <span id="sizeHint">500&nbsp;MB</span>), and your browser saves it for next time.
+      You'll download it <strong>once</strong> (about <span id="sizeHint">500–800&nbsp;MB</span>, depending on your browser), and your browser saves it for next time.
       After that, nothing you type is sent to any server, and the chat even works offline.
     </p>
     <div class="row">
@@ -315,12 +315,15 @@ Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
     "Well, now hush a minute, Captain Puddles is honking at me again! What were you asking, sugar?",
     "Oh, goodness, I drifted off like mist on the water. Ask me again, sugar, and I'll do better.",
   ];
-  function cleanReply(text) {
+  const norm = (x) => x.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  function cleanReply(text, userText = "") {
     let t = text.trim();
     // Cut off if the model starts writing the visitor's next line.
     t = t.split(/(?:^|\n)\s*(?:\*\*)?(?:Visitor|User|Human)\s*:/i)[0];
     t = t.replace(/^\s*(\*\*)?Clem(entine)?( Featherby)?:?(\*\*)?:?\s*/i, "").replace(/\*\*/g, "").trim();
-    if (BREAK_RE.test(t) || !t) return RECOVERY[Math.floor(Math.random() * RECOVERY.length)];
+    // Backstop: if the model just parrots the visitor's message, answer in character instead.
+    const echoed = userText && norm(userText).startsWith(norm(t));
+    if (BREAK_RE.test(t) || !t || echoed) return RECOVERY[Math.floor(Math.random() * RECOVERY.length)];
     // Keep it to a few sentences.
     const sentences = t.match(/[^.!?]+[.!?]+["'”’)]*|[^.!?]+$/g) || [t];
     t = sentences.slice(0, MAX_SENTENCES).join("").trim();
@@ -390,7 +393,8 @@ Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
         if (liveBubble) { liveBubble.textContent = data.text.replace(/\*\*/g, ""); log.scrollTop = log.scrollHeight; }
         break;
       case "done": {
-        const reply = cleanReply(data.text);
+        const lastUser = [...history].reverse().find((m) => m.role === "user");
+        const reply = cleanReply(data.text, lastUser?.content);
         if (liveBubble) { liveBubble.textContent = reply; liveBubble.classList.remove("typing"); }
         history.push({ role: "assistant", content: reply });
         finishTurn();
@@ -419,10 +423,10 @@ Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
 
   downloadBtn.addEventListener("click", async () => {
     downloadBtn.disabled = true;
-    // Warn (but still try) if the browser is low on storage for the ~500 MB model.
+    // Warn (but still try) if the browser is low on storage for the ~800 MB model.
     try {
       const { quota, usage } = await navigator.storage.estimate();
-      if (quota && quota - usage < 600e6) $("cacheHint").textContent = "Your browser is low on storage, so the model may not be saved for next time.";
+      if (quota && quota - usage < 900e6) $("cacheHint").textContent = "Your browser is low on storage, so the model may not be saved for next time.";
     } catch (_) {}
     downloadBtn.textContent = "Downloading…";
     $("progressWrap").classList.add("show");

@@ -20,9 +20,9 @@ async function pickBackend() {
     try {
       const adapter = await navigator.gpu.requestAdapter();
       if (adapter) {
-        // 4-bit weights with fp16 math where the GPU supports it, plain 4-bit otherwise.
-        const dtype = adapter.features.has("shader-f16") ? "q4f16" : "q4";
-        return { device: "webgpu", dtype };
+        // Plain 4-bit weights with fp32 math. The smaller q4f16 build gives garbled
+        // or echoed replies on some GPUs, so we don't use it.
+        return { device: "webgpu", dtype: "q4" };
       }
     } catch (_) { /* fall through to WASM */ }
   }
@@ -83,10 +83,12 @@ async function generate(messages) {
     },
   });
   await generator(messages, {
+    // Qwen2.5's recommended sampling settings (from the model's generation_config.json).
     max_new_tokens: 120,       // ~4 short sentences
     do_sample: true,
     temperature: 0.7,
-    top_p: 0.9,
+    top_k: 20,
+    top_p: 0.8,
     repetition_penalty: 1.1,
     streamer,
     stopping_criteria: stopper,
