@@ -34,7 +34,23 @@ Why this model: it's the smallest widely used instruct model that reliably follo
 
 The model sees only the character file plus the last **3 exchanges** (`MAX_EXCHANGES` in `index.html`). Replies are capped at 120 new tokens and trimmed to four sentences. If a reply ever breaks character (mentions being an AI, for example), the page swaps in an in-character line instead.
 
-## Running it
+## Publishing on GitHub Pages
+
+The site is plain static files with no build step, so it can be served straight from the repo.
+
+1. Merge into `main`.
+2. In the repo, go to **Settings → Pages**. Under "Build and deployment," choose **Deploy from a branch**, then pick `main` and `/ (root)`.
+3. After a minute or so the site is live at `https://<your-username>.github.io/clem-lake-eola/`.
+
+Notes:
+
+- `.nojekyll` tells Pages to serve the files as they are, without Jekyll processing.
+- GitHub Pages caches files for about 10 minutes, so an edit to `character.md` can take that long to appear.
+- The model files come from Hugging Face and the library from jsDelivr, so the Pages site itself stays tiny.
+- After the first successful load, the page asks the browser to keep the saved model, so it isn't cleared when disk space runs low.
+- GitHub Pages can't send the headers that enable multithreaded WASM. Browsers without WebGPU therefore run single-threaded, which is slower. WebGPU isn't affected.
+
+## Running it locally
 
 Pages can't `fetch()` files from `file://`, so serve the folder over HTTP:
 
@@ -42,4 +58,4 @@ Pages can't `fetch()` files from `file://`, so serve the folder over HTTP:
 python3 -m http.server 8000
 ```
 
-Then open http://localhost:8000. To publish, turn on **GitHub Pages** for this repo (Settings → Pages → deploy from branch, root folder).
+Then open http://localhost:8000.

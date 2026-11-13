@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clem of Lake Eola</title>
 <meta name="description" content="Chat with Clem Featherby, the ghost of Lake Eola's swan keeper. The AI runs entirely in your browser.">
+<meta name="theme-color" content="#070d1f">
+<meta property="og:title" content="Clem of Lake Eola">
+<meta property="og:description" content="Take a ghost tour of Lake Eola with Clem, the old swan keeper. The AI runs entirely in your browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%230d1a38'/%3E%3Cpath d='M25 41C31 33 29 25 22.5 20.5C18 17 17.5 12.5 20.5 10.5' fill='none' stroke='%23eef3fb' stroke-width='4.2' stroke-linecap='round'/%3E%3Ccircle cx='21.5' cy='11' r='3.4' fill='%23eef3fb'/%3E%3Cpath d='M18.6 9.8L11.5 13.6L18.8 13.2Z' fill='%23e9a65b'/%3E%3Cpath d='M12 42C12 50 28 54 44 51C52 49 57 43 58 33C52 39 44 40 38 38C32 36 26 38 22 40C18 41.5 14 40.5 12 42Z' fill='%23eef3fb'/%3E%3C/svg%3E">
+<!-- Warm up connections to the AI library CDN and the model host before the visitor clicks Download -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://huggingface.co" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -374,6 +382,8 @@ Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
         input.disabled = false; sendBtn.disabled = false; resetBtn.disabled = false;
         input.placeholder = "Ask Clem about the lake, the swans, or the old days…";
         input.focus();
+        // Ask the browser not to evict the saved model when space runs low.
+        navigator.storage?.persist?.().catch(() => {});
         break;
       }
       case "token":
@@ -407,8 +417,13 @@ Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
     input.focus();
   }
 
-  downloadBtn.addEventListener("click", () => {
+  downloadBtn.addEventListener("click", async () => {
     downloadBtn.disabled = true;
+    // Warn (but still try) if the browser is low on storage for the ~500 MB model.
+    try {
+      const { quota, usage } = await navigator.storage.estimate();
+      if (quota && quota - usage < 600e6) $("cacheHint").textContent = "Your browser is low on storage, so the model may not be saved for next time.";
+    } catch (_) {}
     downloadBtn.textContent = "Downloading…";
     $("progressWrap").classList.add("show");
     $("statusText").textContent = "Starting…";
