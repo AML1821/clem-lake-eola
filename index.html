@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clem of Lake Eola</title>
+<meta name="description" content="Chat with Clem Featherby, the ghost of Lake Eola's swan keeper. The AI runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night-1: #070d1f;
+    --night-2: #0d1a38;
+    --night-3: #16294f;
+    --lake: #1b3a66;
+    --silver: #d9e2ef;
+    --silver-dim: #9fb0c8;
+    --moon: #f4f1e6;
+    --glow: rgba(214, 228, 255, .35);
+    --accent: #a9c4ec;
+    --accent-strong: #cfe0fa;
+    --ghost: rgba(225, 235, 250, .08);
+    --ghost-border: rgba(200, 218, 245, .18);
+    --danger: #f2b8b5;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Nunito Sans", system-ui, sans-serif;
+    color: var(--silver);
+    background: var(--night-1);
+    background-image:
+      radial-gradient(circle at 82% 9%, var(--glow) 0, transparent 22%),
+      linear-gradient(180deg, var(--night-1) 0%, var(--night-2) 45%, var(--night-3) 70%, var(--lake) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Moon + stars + water shimmer, purely decorative */
+  .sky { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .moon {
+    position: absolute; top: 5vh; right: 12vw; width: 70px; height: 70px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 38%, #fffef8, var(--moon) 55%, #d8d3c2 100%);
+    box-shadow: 0 0 40px 12px rgba(240, 240, 255, .25), 0 0 120px 40px rgba(180, 200, 255, .12);
+  }
+  .stars { position: absolute; inset: 0; background-image:
+      radial-gradient(1px 1px at 10% 12%, #fff9, transparent 60%),
+      radial-gradient(1px 1px at 25% 30%, #fff7, transparent 60%),
+      radial-gradient(1.5px 1.5px at 40% 8%, #fffa, transparent 60%),
+      radial-gradient(1px 1px at 55% 22%, #fff6, transparent 60%),
+      radial-gradient(1px 1px at 68% 35%, #fff8, transparent 60%),
+      radial-gradient(1.5px 1.5px at 90% 28%, #fff9, transparent 60%),
+      radial-gradient(1px 1px at 5% 40%, #fff6, transparent 60%),
+      radial-gradient(1px 1px at 33% 45%, #fff5, transparent 60%);
+    animation: twinkle 6s ease-in-out infinite alternate; }
+  @keyframes twinkle { from { opacity: .55 } to { opacity: 1 } }
+  .water {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 22vh;
+    background: repeating-linear-gradient(180deg, transparent 0 9px, rgba(210, 225, 250, .06) 9px 10px);
+    mask-image: linear-gradient(180deg, transparent, #000 70%);
+    -webkit-mask-image: linear-gradient(180deg, transparent, #000 70%);
+    animation: ripple 8s linear infinite;
+  }
+  @keyframes ripple { from { background-position: 0 0 } to { background-position: 0 40px } }
+  @media (prefers-reduced-motion: reduce) { .stars, .water { animation: none; } }
+
+  main {
+    position: relative; z-index: 1;
+    max-width: 720px; margin: 0 auto; padding: 28px 16px 40px;
+    display: flex; flex-direction: column; gap: 18px; min-height: 100vh;
+  }
+  header { display: flex; align-items: center; gap: 14px; }
+  header svg { width: 58px; height: 58px; flex: none; filter: drop-shadow(0 0 10px rgba(220, 232, 255, .45)); }
+  h1 {
+    font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600;
+    font-size: clamp(1.8rem, 5vw, 2.5rem); margin: 0; line-height: 1.05; color: var(--moon);
+    text-shadow: 0 0 18px rgba(220, 232, 255, .35);
+  }
+  .subtitle { margin: 4px 0 0; color: var(--silver-dim); font-style: italic; font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.15rem; }
+
+  .card {
+    background: var(--ghost); border: 1px solid var(--ghost-border); border-radius: var(--radius);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    padding: 18px;
+  }
+  .note { margin: 0 0 14px; line-height: 1.55; color: var(--silver); font-size: .95rem; }
+  .note strong { color: var(--accent-strong); font-weight: 600; }
+  .fine { color: var(--silver-dim); font-size: .82rem; margin: 10px 0 0; line-height: 1.45; }
+
+  button {
+    font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--accent);
+    background: linear-gradient(180deg, #2a4a7c, #1c355d); color: var(--moon);
+    padding: 10px 20px; font-weight: 600; letter-spacing: .01em;
+    transition: transform .15s ease, box-shadow .2s ease, opacity .2s;
+  }
+  button:hover:not(:disabled) { box-shadow: 0 0 16px rgba(190, 212, 250, .35); transform: translateY(-1px); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+
+  .progress-wrap { margin-top: 14px; display: none; }
+  .progress-wrap.show { display: block; }
+  .bar { height: 10px; border-radius: 999px; background: rgba(255, 255, 255, .08); overflow: hidden; border: 1px solid var(--ghost-border); }
+  .bar > div {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #8fb2e6, #e8eef9, #8fb2e6); background-size: 200% 100%;
+    animation: sheen 2.4s linear infinite; transition: width .25s ease;
+  }
+  @keyframes sheen { from { background-position: 200% 0 } to { background-position: 0 0 } }
+  .progress-text { display: flex; justify-content: space-between; gap: 10px; font-size: .82rem; color: var(--silver-dim); margin-top: 6px; }
+
+  /* Chat */
+  .chat { display: flex; flex-direction: column; flex: 1; min-height: 420px; padding: 0; overflow: hidden; }
+  .chat-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    border-bottom: 1px solid var(--ghost-border); font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.2rem; color: var(--moon);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #56627a; flex: none; }
+  .dot.on { background: #bfe3ff; box-shadow: 0 0 8px #bfe3ff; }
+  .chat-head .device { margin-left: auto; font-family: "Nunito Sans", sans-serif; font-size: .75rem; color: var(--silver-dim); }
+  #log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+  .msg { display: flex; gap: 10px; max-width: 88%; animation: rise .35s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+  .msg .avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center;
+    background: radial-gradient(circle, rgba(230, 240, 255, .18), rgba(230, 240, 255, .04)); border: 1px solid var(--ghost-border); }
+  .msg .avatar svg { width: 24px; height: 24px; }
+  .bubble { padding: 10px 14px; border-radius: 16px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.clem .bubble {
+    background: linear-gradient(180deg, rgba(218, 230, 250, .14), rgba(218, 230, 250, .07));
+    border: 1px solid var(--ghost-border); border-top-left-radius: 4px;
+    font-family: "Cormorant Garamond", Georgia, serif; font-size: 1.12rem; color: #eef3fb;
+    box-shadow: 0 0 18px rgba(200, 220, 255, .07);
+  }
+  .msg.you { align-self: flex-end; }
+  .msg.you .bubble { background: #24416f; border: 1px solid #3b5f96; border-top-right-radius: 4px; color: var(--moon); }
+  .msg.system .bubble { background: transparent; border: 1px dashed var(--ghost-border); color: var(--silver-dim); font-size: .85rem; }
+  .typing::after { content: "▍"; animation: blink 1s steps(2) infinite; margin-left: 2px; color: var(--accent); }
+  @keyframes blink { 50% { opacity: 0 } }
+
+  form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--ghost-border); align-items: flex-end; }
+  textarea {
+    flex: 1; resize: none; font: inherit; color: var(--moon); background: rgba(5, 12, 30, .55);
+    border: 1px solid var(--ghost-border); border-radius: 14px; padding: 10px 12px; min-height: 44px; max-height: 120px; line-height: 1.4;
+  }
+  textarea::placeholder { color: #7f8faa; }
+  #stopBtn { display: none; background: transparent; }
+  #stopBtn.show { display: inline-block; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .linkish { background: none; border: none; color: var(--silver-dim); padding: 6px 4px; font-weight: 400; text-decoration: underline; text-underline-offset: 3px; }
+  .linkish:hover:not(:disabled) { box-shadow: none; color: var(--moon); transform: none; }
+  footer { text-align: center; color: var(--silver-dim); font-size: .78rem; }
+  footer a { color: var(--accent); }
+
+  @media (max-width: 520px) {
+    .moon { width: 34px; height: 34px; top: 10px; right: 12px; }
+    header { padding-right: 34px; }
+    .msg { max-width: 96%; }
+    header svg { width: 46px; height: 46px; }
+  }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><div class="stars"></div><div class="moon"></div><div class="water"></div></div>
+
+<!-- Reusable swan icon -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="swanGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9d6ea"/>
+    </linearGradient>
+    <symbol id="swan" viewBox="0 0 64 64">
+      <path d="M25 41C31 33 29 25 22.5 20.5C18 17 17.5 12.5 20.5 10.5" fill="none" stroke="url(#swanGrad)" stroke-width="4.2" stroke-linecap="round"/>
+      <circle cx="21.5" cy="11" r="3.4" fill="url(#swanGrad)"/>
+      <path d="M18.6 9.8L11.5 13.6L18.8 13.2Z" fill="#e9a65b"/>
+      <path d="M18.6 9.8L16.4 11.2L18.8 12.6Z" fill="#1a2238"/>
+      <circle cx="21.9" cy="10.4" r="0.7" fill="#0d1a38"/>
+      <path d="M12 42C12 50 28 54 44 51C52 49 57 43 58 33C52 39 44 40 38 38C32 36 26 38 22 40C18 41.5 14 40.5 12 42Z" fill="url(#swanGrad)"/>
+      <path d="M30 45C38 47 46 44.5 52 39" fill="none" stroke="#a9bcd8" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M8 56c4 2 8 2 12 0s8-2 12 0 8 2 12 0 8-2 12 0" fill="none" stroke="#9fb6d8" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main>
+  <header>
+    <svg role="img" aria-label="Swan"><use href="#swan"/></svg>
+    <div>
+      <h1>Clem of Lake Eola</h1>
+      <p class="subtitle">Evening rounds &amp; ghost tours with the old swan keeper</p>
+    </div>
+  </header>
+
+  <section class="card" id="setup" aria-labelledby="setupTitle">
+    <h2 id="setupTitle" class="sr-only" style="position:absolute;left:-9999px">Download the model</h2>
+    <p class="note">
+      Clem is voiced by a small AI language model that runs <strong>entirely on your device</strong>.
+      You'll download it <strong>once</strong> (about <span id="sizeHint">500&nbsp;MB</span>), and your browser saves it for next time.
+      After that, nothing you type is sent to any server, and the chat even works offline.
+    </p>
+    <div class="row">
+      <button id="downloadBtn" type="button">Download model</button>
+      <span id="cacheHint" class="fine" style="margin:0"></span>
+    </div>
+    <div class="progress-wrap" id="progressWrap" aria-live="polite">
+      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="bar"><div id="barFill"></div></div>
+      <div class="progress-text"><span id="statusText">Starting…</span><span id="pctText"></span></div>
+    </div>
+    <p class="fine">Works best in a recent Chrome or Edge on a computer (uses your graphics card with WebGPU). Other browsers fall back to a slower mode. Use Wi-Fi if you can.</p>
+  </section>
+
+  <section class="card chat" aria-label="Chat with Clem">
+    <div class="chat-head">
+      <span class="dot" id="dot"></span> Clem Featherby
+      <span class="device" id="deviceLabel">asleep by the fountain</span>
+    </div>
+    <div id="log" role="log" aria-live="polite"></div>
+    <form id="form">
+      <label for="input" style="position:absolute;left:-9999px">Your message</label>
+      <textarea id="input" rows="1" placeholder="Download the model to wake Clem…" disabled maxlength="500"></textarea>
+      <button id="sendBtn" type="submit" disabled>Send</button>
+      <button id="stopBtn" type="button">Stop</button>
+    </form>
+  </section>
+
+  <div class="row" style="justify-content:center">
+    <button id="resetBtn" class="linkish" type="button" disabled>Start a new conversation</button>
+  </div>
+
+  <footer>Clem is a fictional character. Her memory is foggy, so don't count on her for history homework.</footer>
+</main>
+
+<script type="module">
+  // ------- Settings -------
+  const CHARACTER_FILE = "character.md";
+  const MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+  const MAX_EXCHANGES = 3;          // How many past back-and-forths the model sees (keeps context small)
+  const MAX_SENTENCES = 4;
+  const FALLBACK_CHARACTER = `## Who you are
+You are Clementine "Clem" Featherby, the ghost of Lake Eola's swan keeper from the 1950s in Orlando, Florida. You are warm, chatty, a little scatterbrained, and Southern.
+## Rules
+- Never break character or say you are an AI.
+- Reply in two to four short sentences.
+- If unsure of a fact, say your memory is "a bit foggy, like the lake at dawn."
+## Greeting
+Well, evenin', sugar! I'm Clem. Care for a little ghost tour?`;
+
+  const $ = (id) => document.getElementById(id);
+  const log = $("log"), input = $("input"), sendBtn = $("sendBtn"), stopBtn = $("stopBtn");
+  const downloadBtn = $("downloadBtn"), resetBtn = $("resetBtn");
+
+  // ------- Character file -------
+  function parseCharacter(md) {
+    md = md.replace(/<!--[\s\S]*?-->/g, "").replace(/\r/g, "");
+    const sections = [];
+    let cur = { title: "", body: [] };
+    for (const line of md.split("\n")) {
+      const h = line.match(/^##\s+(.+?)\s*$/);
+      if (h) { sections.push(cur); cur = { title: h[1], body: [] }; }
+      else cur.body.push(line);
+    }
+    sections.push(cur);
+
+    let system = [], greeting = "", examples = [];
+    for (const s of sections) {
+      const body = s.body.join("\n").trim();
+      if (!body) continue;
+      if (/^greeting/i.test(s.title)) greeting = body.replace(/\s+/g, " ");
+      else if (/^example/i.test(s.title)) {
+        for (const line of body.split("\n")) {
+          const m = line.match(/^\*\*(Visitor|Clem):\*\*\s*(.+)$/i);
+          if (m) examples.push({ role: /visitor/i.test(m[1]) ? "user" : "assistant", content: m[2].trim() });
+        }
+      } else system.push((s.title ? `# ${s.title}\n` : "") + body);
+    }
+    return { system: system.join("\n\n"), greeting, examples };
+  }
+
+  let character;
+  async function loadCharacter() {
+    try {
+      const res = await fetch(CHARACTER_FILE, { cache: "no-cache" });
+      if (!res.ok) throw new Error(res.status);
+      character = parseCharacter(await res.text());
+    } catch (e) {
+      console.warn("Couldn't load character.md, using built-in fallback.", e);
+      character = parseCharacter(FALLBACK_CHARACTER);
+    }
+  }
+
+  // ------- Chat UI -------
+  const swanAvatar = `<span class="avatar" aria-hidden="true"><svg><use href="#swan"/></svg></span>`;
+  function addMsg(who, text) {
+    const el = document.createElement("div");
+    el.className = `msg ${who}`;
+    el.innerHTML = (who === "clem" ? swanAvatar : "") + `<div class="bubble"></div>`;
+    el.querySelector(".bubble").textContent = text;
+    log.appendChild(el);
+    log.scrollTop = log.scrollHeight;
+    return el.querySelector(".bubble");
+  }
+
+  // ------- Keeping Clem in character -------
+  const BREAK_RE = /\b(as an ai|an ai\b|a language model|large language model|ai (language )?model|ai assistant|virtual assistant|chatbot|artificial intelligence|i am an assistant|i'm an assistant|alibaba|qwen)\b/i;
+  const RECOVERY = [
+    "Mercy me, I lost my train of thought there, sugar. My memory's a bit foggy, like the lake at dawn. Now, where were we?",
+    "Well, now hush a minute, Captain Puddles is honking at me again! What were you asking, sugar?",
+    "Oh, goodness, I drifted off like mist on the water. Ask me again, sugar, and I'll do better.",
+  ];
+  function cleanReply(text) {
+    let t = text.trim();
+    // Cut off if the model starts writing the visitor's next line.
+    t = t.split(/(?:^|\n)\s*(?:\*\*)?(?:Visitor|User|Human)\s*:/i)[0];
+    t = t.replace(/^\s*(\*\*)?Clem(entine)?( Featherby)?:?(\*\*)?:?\s*/i, "").replace(/\*\*/g, "").trim();
+    if (BREAK_RE.test(t) || !t) return RECOVERY[Math.floor(Math.random() * RECOVERY.length)];
+    // Keep it to a few sentences.
+    const sentences = t.match(/[^.!?]+[.!?]+["'”’)]*|[^.!?]+$/g) || [t];
+    t = sentences.slice(0, MAX_SENTENCES).join("").trim();
+    // Drop a dangling half-sentence if the token limit cut it short.
+    if (!/[.!?"'”’)]$/.test(t) && sentences.length > 1) t = sentences.slice(0, Math.min(MAX_SENTENCES, sentences.length - 1)).join("").trim();
+    return t;
+  }
+
+  let history = [];  // [{role, content}] visible conversation (greeting excluded)
+  function buildMessages() {
+    let recent = history.slice(-MAX_EXCHANGES * 2);
+    while (recent.length && recent[0].role !== "user") recent = recent.slice(1);
+    return [
+      { role: "system", content: character.system },
+      ...character.examples,
+      ...recent,
+    ];
+  }
+
+  function resetChat() {
+    history = [];
+    log.innerHTML = "";
+    addMsg("clem", character.greeting || "Well, evenin', sugar!");
+  }
+
+  // ------- Model worker -------
+  let worker = null, busy = false, liveBubble = null;
+  function startWorker() {
+    worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+    worker.addEventListener("message", onWorkerMessage);
+    // e.g. the AI library couldn't be fetched (offline on first visit, blocked CDN)
+    worker.addEventListener("error", (e) => {
+      console.error(e);
+      worker.terminate(); worker = null;
+      $("statusText").textContent = "Couldn't start the AI library. Check your connection and try again.";
+      downloadBtn.disabled = false; downloadBtn.textContent = "Try again";
+    });
+  }
+
+  const fmtMB = (b) => `${(b / 1e6).toFixed(0)} MB`;
+  function setProgress(loaded, total) {
+    const pct = total ? Math.min(100, (loaded / total) * 100) : 0;
+    $("barFill").style.width = pct.toFixed(1) + "%";
+    $("bar").setAttribute("aria-valuenow", pct.toFixed(0));
+    $("pctText").textContent = total ? `${fmtMB(loaded)} / ${fmtMB(total)} · ${pct.toFixed(0)}%` : "";
+  }
+
+  function onWorkerMessage({ data }) {
+    switch (data.type) {
+      case "status": $("statusText").textContent = data.text; break;
+      case "progress": setProgress(data.loaded, data.total); break;
+      case "ready": {
+        setProgress(1, 1);
+        $("statusText").textContent = "Clem is awake. The model is saved in your browser for next time.";
+        $("pctText").textContent = "100%";
+        downloadBtn.textContent = "Model ready";
+        $("dot").classList.add("on");
+        $("deviceLabel").textContent = data.device === "webgpu" ? "on your device · WebGPU" : "on your device · WASM (slower)";
+        input.disabled = false; sendBtn.disabled = false; resetBtn.disabled = false;
+        input.placeholder = "Ask Clem about the lake, the swans, or the old days…";
+        input.focus();
+        break;
+      }
+      case "token":
+        if (liveBubble) { liveBubble.textContent = data.text.replace(/\*\*/g, ""); log.scrollTop = log.scrollHeight; }
+        break;
+      case "done": {
+        const reply = cleanReply(data.text);
+        if (liveBubble) { liveBubble.textContent = reply; liveBubble.classList.remove("typing"); }
+        history.push({ role: "assistant", content: reply });
+        finishTurn();
+        break;
+      }
+      case "error":
+        console.error(data.text);
+        if (busy) {
+          if (liveBubble) liveBubble.parentElement.remove();
+          history.pop();
+          addMsg("system", "Something went wrong while Clem was thinking: " + data.text);
+          finishTurn();
+        } else {
+          $("statusText").textContent = "Download failed: " + data.text;
+          downloadBtn.disabled = false; downloadBtn.textContent = "Try again";
+        }
+    }
+  }
+
+  function finishTurn() {
+    busy = false; liveBubble = null;
+    sendBtn.disabled = false; input.disabled = false; resetBtn.disabled = false;
+    stopBtn.classList.remove("show");
+    input.focus();
+  }
+
+  downloadBtn.addEventListener("click", () => {
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = "Downloading…";
+    $("progressWrap").classList.add("show");
+    $("statusText").textContent = "Starting…";
+    if (!worker) startWorker();
+    worker.postMessage({ type: "load" });
+  });
+
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text || busy) return;
+    busy = true;
+    input.value = ""; autosize();
+    sendBtn.disabled = true; resetBtn.disabled = true;
+    stopBtn.classList.add("show");
+    addMsg("you", text);
+    history.push({ role: "user", content: text });
+    liveBubble = addMsg("clem", "");
+    liveBubble.classList.add("typing");
+    worker.postMessage({ type: "generate", messages: buildMessages() });
+  });
+
+  stopBtn.addEventListener("click", () => worker.postMessage({ type: "stop" }));
+  resetBtn.addEventListener("click", () => { if (!busy) resetChat(); });
+
+  function autosize() { input.style.height = "auto"; input.style.height = Math.min(input.scrollHeight, 120) + "px"; }
+  input.addEventListener("input", autosize);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
+  });
+
+  // Let returning visitors know the model is already saved.
+  async function checkCache() {
+    try {
+      const cache = await caches.open("transformers-cache");
+      const keys = await cache.keys();
+      if (keys.some((r) => r.url.includes(MODEL_ID) && r.url.includes(".onnx"))) {
+        downloadBtn.textContent = "Wake Clem";
+        $("cacheHint").textContent = "Already saved on this device, so there's nothing new to download.";
+      }
+    } catch (_) { /* Cache API unavailable; ignore */ }
+  }
+
+  await loadCharacter();
+  resetChat();
+  checkCache();
+</script>
+</body>
+</html>
